@@ -13,7 +13,18 @@ class TaskAnalysisController extends Controller
         $taskDescription = $request->input('description');
         $taskComments = $request->input('comments', []);
 
-        $taskText = "Analyze the following task and return a JSON object with: 'progress', 'completed tasks', 'pending tasks', 'open questions', 'estimated time to complete'.\n\nTask Description: " . $taskDescription . "\n\nComments:\n" . implode("\n", $taskComments);
+        // Enriched prompt
+        $taskText = "You are a project management assistant. Analyze the following task in full context, including all descriptions and comments. " .
+            "Return a JSON object with the following fields:\n" .
+            "1. 'progress': Overall progress as a percentage (e.g., '75%').\n" .
+            "2. 'completed_tasks': List of tasks that have already been completed.\n" .
+            "3. 'pending_tasks': List of tasks that are not yet done.\n" .
+            "4. 'open_questions': Any unresolved questions or decisions needed.\n" .
+            "5. 'estimated_time_to_complete': Rough estimate of remaining time.\n\n" .
+            "Use all information provided below and base your analysis on the full context.\n\n" .
+            "Task Description: " . $taskDescription . "\n\n" .
+            "Comments:\n" . implode("\n", $taskComments) . "\n\n" .
+            "Make sure to return only **valid JSON**.";
 
         $analysis = $this->callDeepSeek($taskText);
 
@@ -40,7 +51,7 @@ class TaskAnalysisController extends Controller
         ])->post($endpoint, [
             'model' => $model,
             'messages' => [
-                ['role' => 'system', 'content' => 'You are a helpful assistant that returns only valid JSON based on user instructions.'],
+                ['role' => 'system', 'content' => 'You are a precise assistant that returns **only valid JSON** with required fields.'],
                 ['role' => 'user', 'content' => $taskText]
             ],
             'response_format' => ['type' => 'json_object'],
